@@ -163,5 +163,6 @@ async def handle_move(callback_query: types.CallbackQuery):
 
     await callback_query.answer()
 
+
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
