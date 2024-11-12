@@ -4,102 +4,16 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils import executor
+from game import TicTacToe
+import os
+from dotenv import load_dotenv
 
-# Your TicTacToe class
-class TicTacToe:
-    def __init__(self):
-        self.board = [' '] * 9
 
-    def reset_board(self):
-        self.board = [' '] * 9
+load_dotenv()
 
-    def make_move(self, row, col, player):
-        if self.board[row * 3 + col] == ' ':
-            self.board[row * 3 + col] = player
-            return True
-        return False
-
-    def is_board_full(self):
-        return ' ' not in self.board
-
-    def check_winner(self):
-        # Winning positions
-        winning_positions = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
-            [0, 4, 8], [2, 4, 6]              # diagonals
-        ]
-        for positions in winning_positions:
-            if self.board[positions[0]] == self.board[positions[1]] == self.board[positions[2]] != ' ':
-                return True
-        return False
-
-    def get_best_move(self):
-        # Check for winning move or blocking the opponent
-        for i in range(9):
-            if self.board[i] == ' ':
-                self.board[i] = 'O'
-                if self.check_winner():
-                    return (i // 3, i % 3)
-                self.board[i] = ' '
-                
-        for i in range(9):
-            if self.board[i] == ' ':
-                self.board[i] = 'X'
-                if self.check_winner():
-                    self.board[i] = 'O'
-                    return (i // 3, i % 3)
-                self.board[i] = ' '
-        
-        # If no immediate winning or blocking move, use minimax
-        best_score = -math.inf
-        best_move = None
-        prioritized_moves = [4] + [0, 2, 6, 8] + [1, 3, 5, 7]
-        for i in prioritized_moves:
-            if self.board[i] == ' ':
-                self.board[i] = 'O'
-                score = self.minimax(False)
-                self.board[i] = ' '
-                if score > best_score:
-                    best_score = score
-                    best_move = (i // 3, i % 3)
-        return best_move
-
-    def minimax(self, is_maximizing, alpha=-math.inf, beta=math.inf):
-        if self.check_winner():
-            return 1 if is_maximizing else -1
-        elif self.is_board_full():
-            return 0
-
-        if is_maximizing:
-            best_score = -math.inf
-            for i in range(9):
-                if self.board[i] == ' ':
-                    self.board[i] = 'O'
-                    score = self.minimax(False, alpha, beta)
-                    self.board[i] = ' '
-                    best_score = max(score, best_score)
-                    alpha = max(alpha, best_score)
-                    if beta <= alpha:
-                        break
-            return best_score
-        else:
-            best_score = math.inf
-            for i in range(9):
-                if self.board[i] == ' ':
-                    self.board[i] = 'X'
-                    score = self.minimax(True, alpha, beta)
-                    self.board[i] = ' '
-                    best_score = min(score, best_score)
-                    beta = min(beta, best_score)
-                    if beta <= alpha:
-                        break
-            return best_score
-
-# API token and bot setup
-API_TOKEN = '7404123683:AAGegzbwo7ak_Yp73OpmqI-XZ_dITFndd1M'
 logging.basicConfig(level=logging.INFO)
 
+API_TOKEN=str(os.getenv("API_TOKEN"))
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
@@ -143,7 +57,6 @@ async def handle_move(callback_query: types.CallbackQuery):
             game.reset_board()
             await bot.send_message(callback_query.from_user.id, "Start a new game by typing /newgame", reply_markup=generate_board_markup(game.board))
         else:
-            # Bot's turn
             await asyncio.sleep(1)  # Delay for bot to 'think'
             bot_move = game.get_best_move()
             game.make_move(bot_move[0], bot_move[1], 'O')
